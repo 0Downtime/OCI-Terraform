@@ -1,0 +1,21 @@
+region           = "us-ashburn-1"
+tenancy_ocid     = ""
+user_ocid        = ""
+fingerprint      = ""
+private_key_path = ""
+auth             = "ConfigFile"
+
+foundation_compartments = {
+  cmp-top = {
+    name          = "cmp-top"
+    description   = "Enclosing compartment"
+    parent_ocid   = ""
+    mode          = "existing-managed"
+    existing_ocid = ""
+    allow_reparent = false
+  }
+}
+
+state_bucket_name            = ""
+state_bucket_compartment_ocid = ""
+state_bucket_kms_key_id      = ""

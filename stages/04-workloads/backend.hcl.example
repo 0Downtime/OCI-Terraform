@@ -1,0 +1,5 @@
+bucket              = "replace-after-bootstrap"
+namespace           = "replace-after-bootstrap"
+region              = "us-ashburn-1"
+key                 = "oci/04-workloads/terraform.tfstate"
+config_file_profile = "DEFAULT"

@@ -1,0 +1,5 @@
+region                       = "us-ashburn-1"
+tenancy_ocid                 = ""
+integration_compartment_ocid = ""
+fusion_compartment_ocid      = ""
+config_file_profile          = "DEFAULT"

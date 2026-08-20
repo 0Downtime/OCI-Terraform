@@ -1,0 +1,38 @@
+name: Terraform validation
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        stage:
+          - 00-bootstrap
+          - 01-governance-iam
+          - 02-network
+          - 03-security-observability
+          - 04-workloads
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+      - name: Format check
+        run: terraform fmt -check -recursive
+      - name: Initialize without backend
+        working-directory: stages/${{ matrix.stage }}
+        run: terraform init -backend=false -input=false
+      - name: Validate stage
+        working-directory: stages/${{ matrix.stage }}
+        run: terraform validate -no-color
+      - name: Validate inventory tool
+        run: python3 scripts/validate_inventory.py inventory/oci-inventory.example.json
+      - name: Run offline tests
+        run: python3 -m unittest discover -s tests -v

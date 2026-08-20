@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "tenancy": {
+    "name": "example-tenancy",
+    "ocid": "ocid1.tenancy.oc1..exampleid123",
+    "home_region": "us-ashburn-1",
+    "target_region": "us-ashburn-1",
+    "identity_domain_ocid": "ocid1.domain.oc1..exampleid123"
+  },
+  "compartments": [
+    {
+      "key": "cmp-top",
+      "name": "cmp-top",
+      "description": "Enclosing compartment",
+      "parent_key": "root",
+      "mode": "existing-managed",
+      "ocid": "ocid1.compartment.oc1..exampleid123",
+      "allow_reparent": false
+    }
+  ],
+  "groups": [],
+  "policies": [],
+  "tag_namespaces": [],
+  "budgets": [],
+  "events": [],
+  "network": {
+    "vcns": [],
+    "subnets": [],
+    "route_tables": [],
+    "security_lists": [],
+    "network_security_groups": [],
+    "internet_gateways": [],
+    "nat_gateways": [],
+    "service_gateways": [],
+    "drgs": [],
+    "load_balancers": [],
+    "bastions": []
+  },
+  "security": {
+    "vaults": [],
+    "keys": [],
+    "buckets": [],
+    "log_groups": [],
+    "service_connectors": [],
+    "cloud_guard": [],
+    "security_zones": [],
+    "vulnerability_scanning": [],
+    "alarms": [],
+    "topics": [],
+    "notifications": []
+  },
+  "workloads": {
+    "fusion_environment_families": [],
+    "fusion_environments": [],
+    "integration_instances": [],
+    "ccs": [],
+    "hyperion_epm": []
+  },
+  "move_allowlist": []
+}

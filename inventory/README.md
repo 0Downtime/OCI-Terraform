@@ -13,3 +13,7 @@ The inventory must classify each item as one of:
 `existing-managed`, `observe-only`, `create`, `external-saas`, or `move-allowlisted`.
 
 Existing and move-allowlisted items require exact OCIDs. A compartment parent change also requires a matching `move_allowlist` entry with both the current and desired parent OCIDs.
+
+Groups additionally require an explicit `group_type`: `classic` for tenancy IAM groups or `identity-domain` for SCIM identity-domain groups. Existing identity-domain groups also require the provider-specific `import_id` in `idcsEndpoint/{idcsEndpoint}/groups/{groupId}` form in addition to their exact OCID. The Terraform stage has separate resource addresses and import semantics for those types.
+
+The normalized audit snapshot is a separate artifact under `audit/schema/oci-audit.v1.schema.json`; do not treat the inventory as a complete audit snapshot.

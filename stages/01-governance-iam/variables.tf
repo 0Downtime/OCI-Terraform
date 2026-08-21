@@ -42,6 +42,7 @@ variable "groups" {
   type = map(object({
     name          = string
     description   = string
+    group_type    = string
     mode          = string
     existing_ocid = optional(string, "")
   }))

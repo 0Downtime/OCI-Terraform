@@ -60,6 +60,30 @@ variable "state_bucket_name" {
   default     = ""
 }
 
+variable "state_bucket_mode" {
+  type        = string
+  description = "disabled, create, existing-managed, or observe-only. Existing adoption still requires a reviewed import using the exact OCID."
+  default     = "disabled"
+}
+
+variable "state_bucket_existing_ocid" {
+  type        = string
+  description = "Exact existing state bucket OCID for adoption guardrails; never discovered by name."
+  default     = ""
+}
+
+variable "allowlisted_moves_enabled" {
+  type        = bool
+  description = "Separate opt-in for compartment moves. Keep false during initial convergence."
+  default     = false
+}
+
+variable "approved_move_keys" {
+  type        = set(string)
+  description = "Exact inventory keys approved for a separately reviewed move operation."
+  default     = []
+}
+
 variable "state_bucket_compartment_ocid" {
   type        = string
   description = "Compartment for the state bucket, normally cmp-security."

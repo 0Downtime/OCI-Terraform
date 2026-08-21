@@ -1,7 +1,7 @@
 resource "oci_integration_integration_instance" "this" {
   for_each = {
     for key, instance in var.integration_instances : key => instance
-    if instance.mode != "observe-only"
+    if contains(["create", "existing-managed"], instance.mode)
   }
 
   compartment_id            = var.integration_compartment_ocid
@@ -26,7 +26,7 @@ resource "oci_integration_integration_instance" "this" {
 resource "oci_fusion_apps_fusion_environment" "this" {
   for_each = {
     for key, environment in var.fusion_environments : key => environment
-    if environment.mode != "observe-only"
+    if contains(["create", "existing-managed"], environment.mode)
   }
 
   compartment_id               = var.fusion_compartment_ocid
@@ -57,9 +57,19 @@ check "external_workloads_are_documented" {
 check "existing_workloads_have_ocids" {
   assert {
     condition = alltrue(concat(
-      [for item in values(var.integration_instances) : item.mode == "create" || item.existing_ocid != ""],
-      [for item in values(var.fusion_environments) : item.mode == "create" || item.existing_ocid != ""]
+      [for item in values(var.integration_instances) : item.mode == "create" || item.mode == "external-saas" || item.existing_ocid != ""],
+      [for item in values(var.fusion_environments) : item.mode == "create" || item.mode == "external-saas" || item.existing_ocid != ""]
     ))
     error_message = "Every non-create workload resource requires an exact existing_ocid."
+  }
+}
+
+check "workload_resource_modes" {
+  assert {
+    condition = alltrue(concat(
+      [for item in values(var.integration_instances) : contains(["create", "existing-managed", "observe-only", "external-saas"], item.mode)],
+      [for item in values(var.fusion_environments) : contains(["create", "existing-managed", "observe-only", "external-saas"], item.mode)]
+    ))
+    error_message = "Workload resources cannot use an unrecognized or move mode."
   }
 }

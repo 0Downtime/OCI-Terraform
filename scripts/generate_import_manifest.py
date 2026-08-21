@@ -1,84 +1,100 @@
 #!/usr/bin/env python3
-"""Generate a reviewed, human-readable Terraform import manifest."""
-
+"""Generate stage-scoped Terraform import blocks from a validated inventory."""
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from validate_inventory import validate_inventory  # noqa: E402
 
-RESOURCE_PREFIXES = {
-    "compartments": "oci_identity_compartment",
-    "groups": "oci_identity_group",
-    "policies": "oci_identity_policy",
-    "tag_namespaces": "oci_identity_tag_namespace",
-    "budgets": "oci_budget_budget",
-    "events": "oci_events_rule",
-    "vcns": "oci_core_vcn",
-    "subnets": "oci_core_subnet",
-    "route_tables": "oci_core_route_table",
-    "security_lists": "oci_core_security_list",
-    "network_security_groups": "oci_core_network_security_group",
-    "internet_gateways": "oci_core_internet_gateway",
-    "nat_gateways": "oci_core_nat_gateway",
-    "service_gateways": "oci_core_service_gateway",
-    "drgs": "oci_core_drg",
-    "load_balancers": "oci_load_balancer_load_balancer",
-    "bastions": "oci_bastion_bastion",
-    "vaults": "oci_kms_vault",
-    "keys": "oci_kms_key",
-    "buckets": "oci_objectstorage_bucket",
-    "log_groups": "oci_log_analytics_log_analytics_log_group",
-    "service_connectors": "oci_sch_service_connector",
-    "security_zones": "oci_cloud_guard_security_zone",
-    "alarms": "oci_monitoring_alarm",
-    "topics": "oci_ons_notification_topic",
-    "notifications": "oci_ons_subscription",
-    "fusion_environment_families": "oci_fusion_apps_fusion_environment_family",
-    "fusion_environments": "oci_fusion_apps_fusion_environment",
-    "integration_instances": "oci_integration_integration_instance",
+STAGES = {
+    "00-bootstrap": {"compartments": "oci_identity_compartment.this", "state_bucket": "oci_objectstorage_bucket.terraform_state"},
+    "01-governance-iam": {"groups": "oci_identity_group.this", "policies": "oci_identity_policy.this", "tag_namespaces": "oci_identity_tag_namespace.this"},
+    "02-network": {"vcns": "oci_core_vcn.this", "subnets": "oci_core_subnet.this"},
+    "03-security-observability": {"security_zones": "oci_cloud_guard_security_zone.this", "vaults": "oci_kms_vault.this"},
+    "04-workloads": {"integration_instances": "oci_integration_integration_instance.this", "fusion_environments": "oci_fusion_apps_fusion_environment.this"},
 }
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+ROOT_LABELS = {"compartments", "groups", "policies", "tag_namespaces", "budgets", "events"}
 
 
 def flatten(document: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
-    resources: list[tuple[str, dict[str, Any]]] = []
-    for label in ("compartments", "groups", "policies", "tag_namespaces", "budgets", "events"):
-        resources.extend((label, item) for item in document.get(label, []))
-    for label, items in document.get("network", {}).items():
-        resources.extend((label, item) for item in items)
-    for label, items in document.get("security", {}).items():
-        resources.extend((label, item) for item in items)
-    for label, items in document.get("workloads", {}).items():
-        resources.extend((label, item) for item in items)
-    return resources
+    result = []
+    for label in ROOT_LABELS:
+        result.extend((label, item) for item in document.get(label, []))
+    for parent in ("network", "security", "workloads"):
+        for label, items in document.get(parent, {}).items():
+            result.extend((label, item) for item in items)
+    return result
+
+
+def hcl_string(value: str) -> str:
+    return json.dumps(value, ensure_ascii=False)
+
+
+def generate(document: dict[str, Any], stage: str) -> dict[str, Any]:
+    errors = validate_inventory(document)
+    if errors:
+        raise ValueError("inventory validation failed: " + "; ".join(errors))
+    if stage not in STAGES:
+        raise ValueError(f"unknown stage: {stage}")
+    entries = []
+    for label, item in sorted(flatten(document), key=lambda pair: (pair[0], str(pair[1].get("key") or pair[1].get("name") or pair[1].get("display_name")))):
+        if item.get("mode") not in {"existing-managed", "move-allowlisted"}:
+            continue
+        address_base = STAGES[stage].get(label)
+        if label == "groups" and item.get("group_type", "classic") == "identity-domain":
+            address_base = "oci_identity_domains_group.this"
+        if not address_base:
+            continue
+        key = item.get("terraform_key") or item.get("key") or item.get("name") or item.get("display_name")
+        if not isinstance(key, str) or not item.get("ocid"):
+            raise ValueError(f"incomplete import record for {label}: {key!r}")
+        import_id = item["ocid"]
+        if label == "groups" and item.get("group_type", "classic") == "identity-domain":
+            import_id = item["import_id"]
+        entries.append({"category": label, "key": key, "address": f'{address_base}[{json.dumps(key)}]', "id": import_id, "ocid": item["ocid"], "mode": item["mode"], "stage": stage})
+    return {"schema_version": "oci-import-manifest.v2", "stage": stage, "terraform_directory": f"stages/{stage}", "imports": entries}
+
+
+def render_hcl(manifest: dict[str, Any]) -> str:
+    lines = ["# Generated offline. Review the plan and run from the stage directory.", "# No import is executed by this file.", ""]
+    for entry in manifest["imports"]:
+        lines.extend(["import {", f"  to = {entry['address']}", f"  id = {hcl_string(entry['id'])}", "}", ""])
+    return "\n".join(lines)
+
+
+def validate_hcl_output_path(path: Path, stage: str) -> None:
+    stage_directory = (REPOSITORY_ROOT / "stages" / stage).resolve()
+    resolved = path.resolve()
+    if resolved.parent != stage_directory:
+        raise ValueError(f"generated import blocks must be written directly into {stage_directory}")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--inventory", type=Path, default=Path("inventory/oci-inventory.local.json"))
-    parser.add_argument("--output", type=Path, default=Path("inventory/generated/import-manifest.txt"))
+    parser.add_argument("--stage", required=True, choices=sorted(STAGES))
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--hcl-output", type=Path)
     args = parser.parse_args()
-
-    document = json.loads(args.inventory.read_text(encoding="utf-8"))
-    lines = [
-        "# Generated import manifest. Review every line before execution.",
-        "# This file contains resource addresses and OCIDs; do not commit it.",
-        "",
-    ]
-    for label, item in flatten(document):
-        if item.get("mode") not in {"existing-managed", "move-allowlisted"}:
-            continue
-        resource_type = RESOURCE_PREFIXES.get(label)
-        key = item.get("terraform_key") or item.get("key") or item.get("name") or item.get("display_name")
-        if not resource_type or not key or not item.get("ocid"):
-            lines.append(f"# REVIEW: incomplete import record for {label}: {json.dumps(item, sort_keys=True)}")
-            continue
-        lines.append(f'terraform import \'{resource_type}.this["{key}"]\' {item["ocid"]}')
-
+    try:
+        document = json.loads(args.inventory.read_text(encoding="utf-8"))
+        manifest = generate(document, args.stage)
+        if args.hcl_output:
+            validate_hcl_output_path(args.hcl_output, args.stage)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        print(f"import manifest generation failed: {exc}", file=sys.stderr)
+        return 1
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    args.output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    if args.hcl_output:
+        args.hcl_output.parent.mkdir(parents=True, exist_ok=True)
+        args.hcl_output.write_text(render_hcl(manifest), encoding="utf-8")
     print(args.output)
     return 0
 

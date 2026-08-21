@@ -53,6 +53,7 @@ variable "subnets" {
   type = map(object({
     display_name               = string
     vcn_key                    = string
+    vcn_ocid                   = optional(string, "")
     cidr_block                 = string
     prohibit_public_ip_on_vnic = bool
     mode                       = string

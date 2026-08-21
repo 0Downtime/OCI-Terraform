@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "generated_at": "2026-08-20T00:00:00Z",
+    "region": "us-ashburn-1",
+    "tenancy": {"ocid": "ocid1.tenancy.oc1..synthetictenancy"},
+    "collector_version": "oci-cli-export-example"
+  },
+  "resources": [
+    {
+      "oci_type": "oci_core_vcn",
+      "service": "core",
+      "ocid": "ocid1.vcn.oc1..syntheticvcn",
+      "display_name": "shared-vcn",
+      "compartment_ocid": "ocid1.compartment.oc1..syntheticcompartment",
+      "lifecycle_state": "AVAILABLE",
+      "mode": "observe-only",
+      "attributes": {"cidr_blocks": ["10.0.0.0/16"]},
+      "evidence": {"source": "sanitized fixture", "operation": "ListVcns"}
+    }
+  ],
+  "relationships": [],
+  "findings": [],
+  "collection_manifest": {
+    "input_files": ["raw-export.example.json"],
+    "planned_commands": [],
+    "residual_gaps": ["Synthetic fixture; no OCI call was made."]
+  }
+}

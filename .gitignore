@@ -10,6 +10,11 @@ inventory/*.local.json
 inventory/*.local.yaml
 inventory/*.local.yml
 inventory/generated/
+audit/generated/
+audit/snapshots/**/exact*.json
+audit/snapshots/**/*.local.json
+audit/snapshots/**/*.local.jsonl
+stages/*/imports.generated.tf
 *.pem
 *.key
 *.crt

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://0downtime.example/schemas/oci-audit.v1.schema.json",
+  "title": "OCI normalized audit snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "snapshot_id", "metadata", "resources", "relationships", "findings", "collection_manifest"],
+  "properties": {
+    "schema_version": {"const": "oci-audit.v1"},
+    "snapshot_id": {"type": "string", "minLength": 8},
+    "metadata": {"type": "object", "required": ["generated_at", "source", "collector_version", "redaction_profile"], "properties": {"generated_at": {"type": "string", "format": "date-time"}, "source": {"type": "string"}, "collector_version": {"type": "string"}, "region": {"type": ["string", "null"]}, "tenancy_ocid_hash": {"type": ["string", "null"]}, "redaction_profile": {"enum": ["exact-local", "ai-safe-sha256"]}}, "additionalProperties": false},
+    "resources": {"type": "array", "items": {"type": "object", "required": ["resource_uid", "oci_type", "service", "display_name", "management", "attributes", "evidence"], "properties": {"resource_uid": {"type": "string"}, "oci_type": {"type": "string"}, "service": {"type": "string"}, "ocid": {"type": "string"}, "ocid_hash": {"type": "string"}, "display_name": {"type": "string"}, "region": {"type": ["string", "null"]}, "compartment_ocid": {"type": "string"}, "compartment_ocid_hash": {"type": ["string", "null"]}, "lifecycle_state": {"type": ["string", "null"]}, "management": {"$ref": "#/$defs/management"}, "attributes": {"type": "object"}, "evidence": {"type": "object"}}, "additionalProperties": true}},
+    "relationships": {"type": "array", "items": {"type": "object"}},
+    "findings": {"type": "array", "items": {"type": "object"}},
+    "collection_manifest": {"type": "object", "required": ["input_files", "planned_commands", "residual_gaps"], "properties": {"input_files": {"type": "array", "items": {"type": "string"}}, "planned_commands": {"type": "array", "items": {"type": "object"}}, "residual_gaps": {"type": "array", "items": {"type": "string"}}}, "additionalProperties": true}
+  },
+  "$defs": {"management": {"type": "object", "required": ["observed_mode", "proposed_mode", "confidence"], "properties": {"observed_mode": {"type": "string"}, "proposed_mode": {"type": "string"}, "confidence": {"type": "string"}}, "additionalProperties": false}}
+}

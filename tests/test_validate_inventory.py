@@ -46,14 +46,14 @@ class InventoryValidationTests(unittest.TestCase):
     def test_duplicate_ocid_is_rejected(self):
         document = valid_document()
         document["groups"] = [
-            {"key": "network-admins", "mode": "existing-managed", "ocid": VALID_OCID},
-            {"key": "security-admins", "mode": "existing-managed", "ocid": VALID_OCID},
+            {"key": "network-admins", "group_type": "classic", "mode": "existing-managed", "ocid": VALID_OCID},
+            {"key": "security-admins", "group_type": "classic", "mode": "existing-managed", "ocid": VALID_OCID},
         ]
         self.assertTrue(any("duplicate OCID" in error for error in validate_inventory(document)))
 
     def test_secret_fields_are_rejected(self):
         document = valid_document()
-        document["groups"] = [{"key": "bad", "mode": "create", "password": "do-not-store"}]
+        document["groups"] = [{"key": "bad", "group_type": "classic", "mode": "create", "password": "do-not-store"}]
         self.assertTrue(any("secret-bearing field" in error for error in validate_inventory(document)))
 
     def test_move_requires_two_ocids(self):

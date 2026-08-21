@@ -48,6 +48,24 @@ variable "security_zones" {
   default = {}
 }
 
+variable "security_zone_enabled" {
+  type        = bool
+  description = "Explicit opt-in. Keep false during initial brownfield convergence."
+  default     = false
+}
+
+variable "cloud_guard_enabled" {
+  type        = bool
+  description = "Operator acknowledgement that Cloud Guard is enabled in the target tenancy."
+  default     = false
+}
+
+variable "security_zone_acknowledged" {
+  type        = bool
+  description = "Operator acknowledgement that Security Zone inheritance and deny rules were reviewed."
+  default     = false
+}
+
 variable "vaults" {
   type = map(object({
     display_name  = string
